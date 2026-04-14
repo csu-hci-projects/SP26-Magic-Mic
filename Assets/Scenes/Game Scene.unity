@@ -208,6 +208,10 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2196200014881906742, guid: 40c9947a163a3418a8d9ee294f9d608c, type: 3}
+      propertyPath: proximitySound
+      value: 
+      objectReference: {fileID: 8300000, guid: 4087c3cc8acded142ab77effb516f4e5, type: 3}
+    - target: {fileID: 2196200014881906742, guid: 40c9947a163a3418a8d9ee294f9d608c, type: 3}
       propertyPath: triggerMessage
       value: YOU'VE BEEN CAUGHT
       objectReference: {fileID: 0}
@@ -560,6 +564,10 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2196200014881906742, guid: 40c9947a163a3418a8d9ee294f9d608c, type: 3}
+      propertyPath: proximitySound
+      value: 
+      objectReference: {fileID: 8300000, guid: 4087c3cc8acded142ab77effb516f4e5, type: 3}
+    - target: {fileID: 2196200014881906742, guid: 40c9947a163a3418a8d9ee294f9d608c, type: 3}
       propertyPath: triggerMessage
       value: YOU'VE BEEN CAUGHT
       objectReference: {fileID: 0}
@@ -796,6 +804,10 @@ PrefabInstance:
       propertyPath: color.r
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 2196200014881906742, guid: 40c9947a163a3418a8d9ee294f9d608c, type: 3}
+      propertyPath: proximitySound
+      value: 
+      objectReference: {fileID: 8300000, guid: 4087c3cc8acded142ab77effb516f4e5, type: 3}
     - target: {fileID: 2196200014881906742, guid: 40c9947a163a3418a8d9ee294f9d608c, type: 3}
       propertyPath: triggerMessage
       value: YOU'VE BEEN CAUGHT

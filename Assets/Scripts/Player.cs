@@ -1,84 +1,72 @@
+using Unity.XR.CoreUtils;
 using UnityEngine;
 
+[RequireComponent(typeof(XROrigin))]
 public class Player : MonoBehaviour
 {
-	[SerializeField, Min(0f)]
-	float movementSpeed = 4f, rotationSpeed = 180f, mouseSensitivity = 5f;
-
 	[SerializeField]
-	float startingVerticalEyeAngle = 10f;
+	XROrigin xrOrigin;
 
-	CharacterController characterController;
-
-	Transform eye;
-
-	Vector2 eyeAngles;
+	Transform head;
 
 	void Awake ()
 	{
-		characterController = GetComponent<CharacterController>();
-		eye = transform.GetChild(0);
+		if (xrOrigin == null)
+		{
+			xrOrigin = GetComponent<XROrigin>();
+		}
+
+		if (xrOrigin != null && xrOrigin.Camera != null)
+		{
+			head = xrOrigin.Camera.transform;
+		}
 	}
 
 	public void StartNewGame (Vector3 position)
 	{
-		eyeAngles.x = Random.Range(0f, 360f);
-		eyeAngles.y = startingVerticalEyeAngle;
-		characterController.enabled = false;
-		transform.localPosition = position;
-		characterController.enabled = true;
+		if (xrOrigin == null)
+		{
+			xrOrigin = GetComponent<XROrigin>();
+		}
+
+		if (xrOrigin != null && xrOrigin.Camera != null)
+		{
+			head = xrOrigin.Camera.transform;
+		}
+
+		float yaw = Random.Range(0f, 360f);
+		transform.rotation = Quaternion.Euler(0f, yaw, 0f);
+
+		// Move only in X/Z so we do not fight headset height tracking.
+		if (head != null)
+		{
+			Vector3 delta = new Vector3(
+				position.x - head.position.x,
+				0f,
+				position.z - head.position.z
+			);
+			transform.position += delta;
+		}
+		else
+		{
+			transform.position = new Vector3(
+				position.x,
+				transform.position.y,
+				position.z
+			);
+		}
 	}
 
 	public Vector3 Move ()
 	{
-		UpdateEyeAngles();
-		UpdatePosition();
-		return transform.localPosition;
-	}
-
-	void UpdatePosition ()
-	{
-		var movement = new Vector2(
-			Input.GetAxis("Horizontal"), Input.GetAxis("Vertical")
-		);
-		float sqrMagnitude = movement.sqrMagnitude;
-		if (sqrMagnitude > 1f)
+		if (head == null && xrOrigin != null && xrOrigin.Camera != null)
 		{
-			movement /= Mathf.Sqrt(sqrMagnitude);
-		}
-		movement *= movementSpeed;
-
-		var forward = new Vector2(
-			Mathf.Sin(eyeAngles.x * Mathf.Deg2Rad),
-			Mathf.Cos(eyeAngles.x * Mathf.Deg2Rad)
-		);
-		var right = new Vector2(forward.y, -forward.x);
-
-		movement = right * movement.x + forward * movement.y;
-		characterController.SimpleMove(new Vector3(movement.x, 0f, movement.y));
-	}
-
-	void UpdateEyeAngles ()
-	{
-		float rotationDelta = rotationSpeed * Time.deltaTime;
-		eyeAngles.x += rotationDelta * Input.GetAxis("Horizontal View");
-		eyeAngles.y -= rotationDelta * Input.GetAxis("Vertical View");
-		if (mouseSensitivity > 0f)
-		{
-			float mouseDelta = rotationDelta * mouseSensitivity;
-			eyeAngles.x += mouseDelta * Input.GetAxis("Mouse X");
-			eyeAngles.y -= mouseDelta * Input.GetAxis("Mouse Y");
+			head = xrOrigin.Camera.transform;
 		}
 
-		if (eyeAngles.x > 360f)
-		{
-			eyeAngles.x -= 360f;
-		}
-		else if (eyeAngles.x < 0f)
-		{
-			eyeAngles.x += 360f;
-		}
-		eyeAngles.y = Mathf.Clamp(eyeAngles.y, -45f, 45f);
-		eye.localRotation = Quaternion.Euler(eyeAngles.y, eyeAngles.x, 0f);
+		Transform t = head != null ? head : transform;
+
+		// Maze logic only cares about X/Z.
+		return new Vector3(t.position.x, 0f, t.position.z);
 	}
 }
