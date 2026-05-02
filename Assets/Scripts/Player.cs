@@ -44,6 +44,9 @@ public class Player : MonoBehaviour
 	[SerializeField]
 	LayerMask voiceCollisionMask = ~0;
 
+	[SerializeField, Min(8000)]
+	int microphoneSampleRate = 48000;
+
 	Transform head;
 
 	CharacterController characterController;
@@ -78,6 +81,12 @@ public class Player : MonoBehaviour
 
 	float lastMicrophoneVolume;
 
+	int lastMicrophonePosition;
+
+	int lastMicrophoneDeviceCount;
+
+	string microphoneStatus = "MIC OFF";
+
 	RaycastHit[] voiceCollisionHits = new RaycastHit[8];
 
 	public float LastMicrophoneVolume => lastMicrophoneVolume;
@@ -85,6 +94,8 @@ public class Player : MonoBehaviour
 	public float QuietVolume => quietVolume;
 
 	public float LoudVolume => loudVolume;
+
+	public string MicrophoneStatus => microphoneStatus;
 
 	void Awake ()
 	{
@@ -350,6 +361,7 @@ public class Player : MonoBehaviour
 	{
 		if (microphoneClip != null)
 		{
+			UpdateMicrophoneStatus();
 			return true;
 		}
 
@@ -358,6 +370,7 @@ public class Player : MonoBehaviour
 			UnityEngine.Android.Permission.Microphone
 		))
 		{
+			microphoneStatus = "MIC PERMISSION REQUESTED";
 			UnityEngine.Android.Permission.RequestUserPermission(
 				UnityEngine.Android.Permission.Microphone
 			);
@@ -365,19 +378,32 @@ public class Player : MonoBehaviour
 		}
 #endif
 
-		if (Microphone.devices.Length == 0)
+		lastMicrophoneDeviceCount = Microphone.devices.Length;
+#if UNITY_ANDROID && !UNITY_EDITOR
+		microphoneDevice = null;
+#else
+		if (lastMicrophoneDeviceCount == 0)
 		{
+			microphoneStatus = "NO MICROPHONE DEVICE";
 			return false;
 		}
-
 		microphoneDevice = Microphone.devices[0];
-		int sampleRate = AudioSettings.outputSampleRate;
-		microphoneClip = Microphone.Start(microphoneDevice, true, 1, sampleRate);
+#endif
+		microphoneClip = Microphone.Start(
+			microphoneDevice, true, 2, microphoneSampleRate
+		);
 		if (microphoneSamples == null || microphoneSamples.Length != 256)
 		{
 			microphoneSamples = new float[256];
 		}
-		return microphoneClip != null;
+		if (microphoneClip == null)
+		{
+			microphoneStatus = "MIC START FAILED";
+			return false;
+		}
+
+		UpdateMicrophoneStatus();
+		return true;
 	}
 
 	void StopMicrophone ()
@@ -385,12 +411,15 @@ public class Player : MonoBehaviour
 		isCalibratingVoice = false;
 		if (microphoneClip == null)
 		{
+			microphoneStatus = "MIC OFF";
 			return;
 		}
 
 		Microphone.End(microphoneDevice);
 		microphoneClip = null;
 		microphoneDevice = null;
+		lastMicrophonePosition = 0;
+		microphoneStatus = "MIC OFF";
 	}
 
 	public float PreviewMicrophoneVolume ()
@@ -412,9 +441,11 @@ public class Player : MonoBehaviour
 		}
 
 		int microphonePosition = Microphone.GetPosition(microphoneDevice);
+		lastMicrophonePosition = microphonePosition;
 		if (microphonePosition <= 0)
 		{
 			lastMicrophoneVolume = 0f;
+			UpdateMicrophoneStatus();
 			return 0f;
 		}
 
@@ -432,7 +463,20 @@ public class Player : MonoBehaviour
 			sum += microphoneSamples[i] * microphoneSamples[i];
 		}
 		lastMicrophoneVolume = Mathf.Sqrt(sum / microphoneSamples.Length);
+		UpdateMicrophoneStatus();
 		return lastMicrophoneVolume;
+	}
+
+	void UpdateMicrophoneStatus ()
+	{
+		lastMicrophoneDeviceCount = Microphone.devices.Length;
+		string deviceName = string.IsNullOrEmpty(microphoneDevice) ?
+			"DEFAULT" : microphoneDevice;
+		microphoneStatus =
+			"MIC " + deviceName +
+			" DEVICES " + lastMicrophoneDeviceCount +
+			" POS " + lastMicrophonePosition +
+			" RATE " + microphoneSampleRate;
 	}
 
 	void OnDestroy ()

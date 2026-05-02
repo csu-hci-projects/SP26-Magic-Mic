@@ -350,6 +350,8 @@ public class Game : MonoBehaviour
 		}
 		volumeMeterBuilder.Append("] ");
 		volumeMeterBuilder.Append(volume.ToString("0.000"));
+		volumeMeterBuilder.Append("\n");
+		volumeMeterBuilder.Append(player.MicrophoneStatus);
 		return volumeMeterBuilder.ToString();
 	}
 
