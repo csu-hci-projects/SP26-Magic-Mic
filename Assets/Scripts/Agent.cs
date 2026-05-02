@@ -28,7 +28,7 @@ public class Agent : MonoBehaviour
 
 	Vector3 targetPosition;
 
-	Transform playerTransform;
+	Player player;
 
 	AudioSource audioSource;
 
@@ -43,6 +43,12 @@ public class Agent : MonoBehaviour
 		ParticleSystem.MainModule main = GetComponent<ParticleSystem>().main;
 		main.startColor = color;
 		audioSource = GetComponent<AudioSource>();
+		if (audioSource == null)
+		{
+			audioSource = gameObject.AddComponent<AudioSource>();
+		}
+		audioSource.playOnAwake = false;
+		audioSource.spatialBlend = 0f;
 		gameObject.SetActive(false);
 	}
 
@@ -52,7 +58,7 @@ public class Agent : MonoBehaviour
 		targetIndex = maze.CoordinatesToIndex(coordinates);
 		targetPosition = transform.localPosition =
 			maze.CoordinatesToWorldPosition(coordinates, transform.localPosition.y);
-		playerTransform = FindFirstObjectByType<Player>()?.transform;
+		player = FindFirstObjectByType<Player>();
 		wasCloseToPlayer = false;
 		gameObject.SetActive(true);
 	}
@@ -99,30 +105,24 @@ public class Agent : MonoBehaviour
 		{
 			return;
 		}
-		if (playerTransform == null)
+		if (player == null)
 		{
-			playerTransform = FindFirstObjectByType<Player>()?.transform;
-			if (playerTransform == null)
+			player = FindFirstObjectByType<Player>();
+			if (player == null)
 			{
 				return;
 			}
 		}
 
+		Vector3 playerPosition = player.Move();
 		Vector2 planarOffset = new Vector2(
-			agentPosition.x - playerTransform.localPosition.x,
-			agentPosition.z - playerTransform.localPosition.z
+			agentPosition.x - playerPosition.x,
+			agentPosition.z - playerPosition.z
 		);
 		bool isCloseToPlayer = planarOffset.sqrMagnitude <= proximityDistance * proximityDistance;
 		if (isCloseToPlayer && !wasCloseToPlayer)
 		{
-			if (audioSource != null)
-			{
-				audioSource.PlayOneShot(proximitySound);
-			}
-			else
-			{
-				AudioSource.PlayClipAtPoint(proximitySound, transform.position);
-			}
+			audioSource.PlayOneShot(proximitySound);
 		}
 		wasCloseToPlayer = isCloseToPlayer;
 	}
