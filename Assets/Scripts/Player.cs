@@ -76,7 +76,15 @@ public class Player : MonoBehaviour
 
 	float currentVoiceLevel;
 
+	float lastMicrophoneVolume;
+
 	RaycastHit[] voiceCollisionHits = new RaycastHit[8];
+
+	public float LastMicrophoneVolume => lastMicrophoneVolume;
+
+	public float QuietVolume => quietVolume;
+
+	public float LoudVolume => loudVolume;
 
 	void Awake ()
 	{
@@ -156,7 +164,7 @@ public class Player : MonoBehaviour
 		}
 
 		calibrationTimer += Time.deltaTime;
-		calibrationTotal += GetMicrophoneRms();
+		calibrationTotal += SampleMicrophoneRms();
 		calibrationSampleCount += 1;
 
 		if (calibrationTimer < calibrationSeconds)
@@ -245,7 +253,9 @@ public class Player : MonoBehaviour
 		}
 
 		float volumeRange = Mathf.Max(loudVolume - quietVolume, minimumCalibrationRange);
-		float targetLevel = Mathf.Clamp01((GetMicrophoneRms() - quietVolume) / volumeRange);
+		float targetLevel = Mathf.Clamp01(
+			(SampleMicrophoneRms() - quietVolume) / volumeRange
+		);
 		if (targetLevel < deadZone)
 		{
 			targetLevel = 0f;
@@ -383,16 +393,28 @@ public class Player : MonoBehaviour
 		microphoneDevice = null;
 	}
 
-	float GetMicrophoneRms ()
+	public float PreviewMicrophoneVolume ()
+	{
+		if (!EnsureMicrophone())
+		{
+			lastMicrophoneVolume = 0f;
+			return lastMicrophoneVolume;
+		}
+		return SampleMicrophoneRms();
+	}
+
+	float SampleMicrophoneRms ()
 	{
 		if (microphoneClip == null || microphoneSamples == null)
 		{
+			lastMicrophoneVolume = 0f;
 			return 0f;
 		}
 
 		int microphonePosition = Microphone.GetPosition(microphoneDevice);
 		if (microphonePosition <= 0)
 		{
+			lastMicrophoneVolume = 0f;
 			return 0f;
 		}
 
@@ -409,7 +431,8 @@ public class Player : MonoBehaviour
 		{
 			sum += microphoneSamples[i] * microphoneSamples[i];
 		}
-		return Mathf.Sqrt(sum / microphoneSamples.Length);
+		lastMicrophoneVolume = Mathf.Sqrt(sum / microphoneSamples.Length);
+		return lastMicrophoneVolume;
 	}
 
 	void OnDestroy ()

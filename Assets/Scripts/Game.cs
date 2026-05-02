@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text;
 using TMPro;
 using Unity.Collections;
 using Unity.Jobs;
@@ -64,6 +65,9 @@ public class Game : MonoBehaviour
 	bool isRecordingCalibration;
 
 	bool isWaitingForFallbackStart;
+
+	readonly StringBuilder volumeMeterBuilder = new StringBuilder(32);
+
 
 	void Start ()
 	{
@@ -188,7 +192,9 @@ public class Game : MonoBehaviour
 		if (player.UpdateVoiceCalibration())
 		{
 			ShowLoudCalibrationPrompt();
+			return;
 		}
+		UpdateRecordingPrompt("RECORDING QUIET");
 	}
 
 	void UpdateLoudCalibration (bool primaryButtonDown, bool secondaryButtonDown)
@@ -232,13 +238,12 @@ public class Game : MonoBehaviour
 				player.UseFallbackVoiceCalibration();
 				isRecordingCalibration = false;
 				isWaitingForFallbackStart = true;
-				displayText.text =
-					"LOUD VOICE WAS TOO CLOSE TO QUIET\n" +
-					"PRIMARY: START WITH FALLBACK\n" +
-					"SECONDARY: RECALIBRATE";
+				UpdateFallbackPrompt();
 				displayText.gameObject.SetActive(true);
 			}
+			return;
 		}
+		UpdateRecordingPrompt("RECORDING LOUD");
 	}
 
 	void ShowModalitySelection ()
@@ -262,6 +267,7 @@ public class Game : MonoBehaviour
 		displayText.text =
 			"VOICE CALIBRATION\n" +
 			"STAY QUIET\n" +
+			BuildVolumeMeter() + "\n" +
 			"PRIMARY: RECORD QUIET\n" +
 			"SECONDARY: BACK";
 		displayText.gameObject.SetActive(true);
@@ -275,6 +281,7 @@ public class Game : MonoBehaviour
 		displayText.text =
 			"VOICE CALIBRATION\n" +
 			"SPEAK LOUDLY\n" +
+			BuildVolumeMeter() + "\n" +
 			"PRIMARY: RECORD LOUD\n" +
 			"SECONDARY: RECALIBRATE";
 		displayText.gameObject.SetActive(true);
@@ -293,7 +300,7 @@ public class Game : MonoBehaviour
 			return;
 		}
 		isRecordingCalibration = true;
-		displayText.text = "RECORDING QUIET...";
+		UpdateRecordingPrompt("RECORDING QUIET");
 	}
 
 	void StartLoudCalibration ()
@@ -309,7 +316,41 @@ public class Game : MonoBehaviour
 			return;
 		}
 		isRecordingCalibration = true;
-		displayText.text = "RECORDING LOUD...";
+		UpdateRecordingPrompt("RECORDING LOUD");
+	}
+
+	void UpdateRecordingPrompt (string label)
+	{
+		displayText.text =
+			label + "\n" +
+			BuildVolumeMeter();
+	}
+
+	void UpdateFallbackPrompt ()
+	{
+		displayText.text =
+			"LOUD VOICE WAS TOO CLOSE TO QUIET\n" +
+			BuildVolumeMeter() + "\n" +
+			"QUIET: " + player.QuietVolume.ToString("0.000") + "\n" +
+			"LOUD: " + player.LoudVolume.ToString("0.000") + "\n" +
+			"PRIMARY: START WITH FALLBACK\n" +
+			"SECONDARY: RECALIBRATE";
+	}
+
+	string BuildVolumeMeter ()
+	{
+		float volume = player.PreviewMicrophoneVolume();
+		float normalizedVolume = Mathf.Clamp01(volume * 50f);
+		int filledSegments = Mathf.RoundToInt(normalizedVolume * 10f);
+		volumeMeterBuilder.Clear();
+		volumeMeterBuilder.Append("VOLUME [");
+		for (int i = 0; i < 10; i++)
+		{
+			volumeMeterBuilder.Append(i < filledSegments ? "#" : "-");
+		}
+		volumeMeterBuilder.Append("] ");
+		volumeMeterBuilder.Append(volume.ToString("0.000"));
+		return volumeMeterBuilder.ToString();
 	}
 
 	void UpdateGame ()
