@@ -35,6 +35,15 @@ public class Player : MonoBehaviour
 	[SerializeField, Min(0.0001f)]
 	float minimumCalibrationRange = 0.01f;
 
+	[SerializeField, Min(0f)]
+	float voiceCollisionRadius = 0.25f;
+
+	[SerializeField, Min(0f)]
+	float voiceCollisionSkin = 0.03f;
+
+	[SerializeField]
+	LayerMask voiceCollisionMask = ~0;
+
 	Transform head;
 
 	CharacterController characterController;
@@ -66,6 +75,8 @@ public class Player : MonoBehaviour
 	bool voiceMovementEnabled;
 
 	float currentVoiceLevel;
+
+	RaycastHit[] voiceCollisionHits = new RaycastHit[8];
 
 	void Awake ()
 	{
@@ -250,6 +261,12 @@ public class Player : MonoBehaviour
 		);
 
 		Vector3 movement = direction * (currentVoiceLevel * maxVoiceSpeed * Time.deltaTime);
+		movement = ConstrainVoiceMovement(movement);
+		if (movement.sqrMagnitude <= Mathf.Epsilon)
+		{
+			return;
+		}
+
 		if (characterController != null && characterController.enabled)
 		{
 			characterController.Move(movement);
@@ -258,6 +275,65 @@ public class Player : MonoBehaviour
 		{
 			transform.position += movement;
 		}
+	}
+
+	Vector3 ConstrainVoiceMovement (Vector3 movement)
+	{
+		float distance = movement.magnitude;
+		if (distance <= Mathf.Epsilon)
+		{
+			return Vector3.zero;
+		}
+
+		Vector3 direction = movement / distance;
+		Vector3 origin = GetVoiceCollisionOrigin();
+		int hitCount = Physics.SphereCastNonAlloc(
+			origin,
+			voiceCollisionRadius,
+			direction,
+			voiceCollisionHits,
+			distance + voiceCollisionSkin,
+			voiceCollisionMask,
+			QueryTriggerInteraction.Ignore
+		);
+
+		float allowedDistance = distance;
+		for (int i = 0; i < hitCount; i++)
+		{
+			Collider hitCollider = voiceCollisionHits[i].collider;
+			if (hitCollider == null)
+			{
+				continue;
+			}
+
+			Transform hitTransform = hitCollider.transform;
+			if (hitTransform == transform || hitTransform.IsChildOf(transform))
+			{
+				continue;
+			}
+
+			if (voiceCollisionHits[i].distance <= voiceCollisionSkin)
+			{
+				return Vector3.zero;
+			}
+			allowedDistance = Mathf.Min(
+				allowedDistance,
+				Mathf.Max(0f, voiceCollisionHits[i].distance - voiceCollisionSkin)
+			);
+		}
+
+		return direction * allowedDistance;
+	}
+
+	Vector3 GetVoiceCollisionOrigin ()
+	{
+		Vector3 playerPosition = head != null ? head.position : transform.position;
+		float collisionHeight = playerPosition.y;
+		if (characterController != null)
+		{
+			collisionHeight = transform.TransformPoint(characterController.center).y;
+		}
+		return new Vector3(playerPosition.x, collisionHeight, playerPosition.z);
 	}
 
 	bool EnsureMicrophone ()
