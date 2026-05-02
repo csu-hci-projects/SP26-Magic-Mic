@@ -215,6 +215,10 @@ PrefabInstance:
       propertyPath: triggerMessage
       value: YOU'VE BEEN CAUGHT
       objectReference: {fileID: 0}
+    - target: {fileID: 2196200014881906742, guid: 40c9947a163a3418a8d9ee294f9d608c, type: 3}
+      propertyPath: proximityDistance
+      value: 4
+      objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 1904653213091408558, guid: 40c9947a163a3418a8d9ee294f9d608c, type: 3}
     - {fileID: 1904653213091408559, guid: 40c9947a163a3418a8d9ee294f9d608c, type: 3}
@@ -255,7 +259,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1178791450436251564, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_CameraYOffset
-      value: 0
+      value: -0.2
       objectReference: {fileID: 0}
     - target: {fileID: 1178791450436251564, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_RequestedTrackingOriginMode
@@ -557,6 +561,10 @@ PrefabInstance:
       propertyPath: triggerMessage
       value: YOU'VE BEEN CAUGHT
       objectReference: {fileID: 0}
+    - target: {fileID: 2196200014881906742, guid: 40c9947a163a3418a8d9ee294f9d608c, type: 3}
+      propertyPath: proximityDistance
+      value: 4
+      objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 1904653213091408558, guid: 40c9947a163a3418a8d9ee294f9d608c, type: 3}
     - {fileID: 1904653213091408559, guid: 40c9947a163a3418a8d9ee294f9d608c, type: 3}
@@ -831,6 +839,10 @@ PrefabInstance:
     - target: {fileID: 2196200014881906742, guid: 40c9947a163a3418a8d9ee294f9d608c, type: 3}
       propertyPath: triggerMessage
       value: YOU'VE BEEN CAUGHT
+      objectReference: {fileID: 0}
+    - target: {fileID: 2196200014881906742, guid: 40c9947a163a3418a8d9ee294f9d608c, type: 3}
+      propertyPath: proximityDistance
+      value: 4
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 1904653213091408558, guid: 40c9947a163a3418a8d9ee294f9d608c, type: 3}
