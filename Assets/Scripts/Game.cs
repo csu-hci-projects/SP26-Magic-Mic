@@ -373,6 +373,7 @@ public class Game : MonoBehaviour
 
 	bool TryGetRightHandButton (InputFeatureUsage<bool> button, out bool value)
 	{
+		value = false;
 		if (!rightHandDevice.isValid)
 		{
 			InputDevices.GetDevicesAtXRNode(XRNode.RightHand, inputDevices);
