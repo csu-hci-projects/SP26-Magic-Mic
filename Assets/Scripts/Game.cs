@@ -1,8 +1,10 @@
+using System.Collections.Generic;
 using TMPro;
 using Unity.Collections;
 using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.XR;
 
 using static Unity.Mathematics.math;
 
@@ -10,6 +12,15 @@ using Random = UnityEngine.Random;
 
 public class Game : MonoBehaviour
 {
+	enum GameState
+	{
+		SelectModality,
+		CalibratingQuiet,
+		CalibratingLoud,
+		Playing,
+		Ended
+	}
+
 	[SerializeField]
 	MazeVisualization visualization;
 
@@ -38,13 +49,31 @@ public class Game : MonoBehaviour
 
 	Scent scent;
 
-	bool isPlaying;
+	GameState state;
 
 	MazeCellObject[] cellObjects;
 
-	void StartNewGame ()
+	InputDevice rightHandDevice;
+
+	readonly List<InputDevice> inputDevices = new List<InputDevice>();
+
+	bool wasPrimaryButtonPressed;
+
+	bool wasSecondaryButtonPressed;
+
+	bool isRecordingCalibration;
+
+	bool isWaitingForFallbackStart;
+
+	void Start ()
 	{
-		isPlaying = true;
+		ShowModalitySelection();
+	}
+
+	void StartNewGame (MovementModality modality)
+	{
+		state = GameState.Playing;
+		player.SetMovementModality(modality);
 		displayText.gameObject.SetActive(false);
 		maze = new Maze(mazeSize);
 		scent = new Scent(maze);
@@ -99,15 +128,188 @@ public class Game : MonoBehaviour
 
 	void Update ()
 	{
-		if (isPlaying)
+		bool primaryButtonDown =
+			GetButtonDown(CommonUsages.primaryButton, ref wasPrimaryButtonPressed);
+		bool secondaryButtonDown =
+			GetButtonDown(CommonUsages.secondaryButton, ref wasSecondaryButtonPressed);
+
+		switch (state)
 		{
+			case GameState.SelectModality:
+				UpdateModalitySelection(primaryButtonDown, secondaryButtonDown);
+				break;
+			case GameState.CalibratingQuiet:
+				UpdateQuietCalibration(primaryButtonDown, secondaryButtonDown);
+				break;
+			case GameState.CalibratingLoud:
+				UpdateLoudCalibration(primaryButtonDown, secondaryButtonDown);
+				break;
+			case GameState.Playing:
+				UpdateGame();
+				break;
+			case GameState.Ended:
+				if (primaryButtonDown)
+				{
+					ShowModalitySelection();
+				}
+				break;
+		}
+	}
+
+	void UpdateModalitySelection (bool primaryButtonDown, bool secondaryButtonDown)
+	{
+		if (primaryButtonDown)
+		{
+			StartNewGame(MovementModality.Controller);
 			UpdateGame();
 		}
-		else if (Input.GetKeyDown(KeyCode.Space))
+		else if (secondaryButtonDown)
 		{
-			StartNewGame();
-			UpdateGame();
+			player.SetMovementModality(MovementModality.Voice);
+			ShowQuietCalibrationPrompt();
 		}
+	}
+
+	void UpdateQuietCalibration (bool primaryButtonDown, bool secondaryButtonDown)
+	{
+		if (!isRecordingCalibration)
+		{
+			if (secondaryButtonDown)
+			{
+				ShowModalitySelection();
+			}
+			else if (primaryButtonDown)
+			{
+				StartQuietCalibration();
+			}
+			return;
+		}
+
+		if (player.UpdateVoiceCalibration())
+		{
+			ShowLoudCalibrationPrompt();
+		}
+	}
+
+	void UpdateLoudCalibration (bool primaryButtonDown, bool secondaryButtonDown)
+	{
+		if (isWaitingForFallbackStart)
+		{
+			if (secondaryButtonDown)
+			{
+				ShowQuietCalibrationPrompt();
+			}
+			else if (primaryButtonDown)
+			{
+				StartNewGame(MovementModality.Voice);
+				UpdateGame();
+			}
+			return;
+		}
+
+		if (!isRecordingCalibration)
+		{
+			if (secondaryButtonDown)
+			{
+				ShowQuietCalibrationPrompt();
+			}
+			else if (primaryButtonDown)
+			{
+				StartLoudCalibration();
+			}
+			return;
+		}
+
+		if (player.UpdateVoiceCalibration())
+		{
+			if (player.HasUsableVoiceCalibration())
+			{
+				StartNewGame(MovementModality.Voice);
+				UpdateGame();
+			}
+			else
+			{
+				player.UseFallbackVoiceCalibration();
+				isRecordingCalibration = false;
+				isWaitingForFallbackStart = true;
+				displayText.text =
+					"LOUD VOICE WAS TOO CLOSE TO QUIET\n" +
+					"PRIMARY: START WITH FALLBACK\n" +
+					"SECONDARY: RECALIBRATE";
+				displayText.gameObject.SetActive(true);
+			}
+		}
+	}
+
+	void ShowModalitySelection ()
+	{
+		state = GameState.SelectModality;
+		isRecordingCalibration = false;
+		isWaitingForFallbackStart = false;
+		player.SetMovementModality(MovementModality.Controller);
+		displayText.text =
+			"SELECT MOVEMENT\n" +
+			"PRIMARY: CONTROLLER\n" +
+			"SECONDARY: VOICE";
+		displayText.gameObject.SetActive(true);
+	}
+
+	void ShowQuietCalibrationPrompt ()
+	{
+		state = GameState.CalibratingQuiet;
+		isRecordingCalibration = false;
+		isWaitingForFallbackStart = false;
+		displayText.text =
+			"VOICE CALIBRATION\n" +
+			"STAY QUIET\n" +
+			"PRIMARY: RECORD QUIET\n" +
+			"SECONDARY: BACK";
+		displayText.gameObject.SetActive(true);
+	}
+
+	void ShowLoudCalibrationPrompt ()
+	{
+		state = GameState.CalibratingLoud;
+		isRecordingCalibration = false;
+		isWaitingForFallbackStart = false;
+		displayText.text =
+			"VOICE CALIBRATION\n" +
+			"SPEAK LOUDLY\n" +
+			"PRIMARY: RECORD LOUD\n" +
+			"SECONDARY: RECALIBRATE";
+		displayText.gameObject.SetActive(true);
+	}
+
+	void StartQuietCalibration ()
+	{
+		if (!player.BeginVoiceCalibration(VoiceCalibrationStep.Quiet))
+		{
+			displayText.text =
+				"NO MICROPHONE FOUND\n" +
+				"CHECK PERMISSION AND DEVICE\n" +
+				"PRIMARY: CONTROLLER\n" +
+				"SECONDARY: TRY VOICE AGAIN";
+			state = GameState.SelectModality;
+			return;
+		}
+		isRecordingCalibration = true;
+		displayText.text = "RECORDING QUIET...";
+	}
+
+	void StartLoudCalibration ()
+	{
+		if (!player.BeginVoiceCalibration(VoiceCalibrationStep.Loud))
+		{
+			displayText.text =
+				"NO MICROPHONE FOUND\n" +
+				"CHECK PERMISSION AND DEVICE\n" +
+				"PRIMARY: CONTROLLER\n" +
+				"SECONDARY: TRY VOICE AGAIN";
+			state = GameState.SelectModality;
+			return;
+		}
+		isRecordingCalibration = true;
+		displayText.text = "RECORDING LOUD...";
 	}
 
 	void UpdateGame ()
@@ -132,8 +334,9 @@ public class Game : MonoBehaviour
 
 	void EndGame (string message)
 	{
-		isPlaying = false;
-		displayText.text = message;
+		state = GameState.Ended;
+		player.EndGame();
+		displayText.text = message + "\nPRIMARY: MENU";
 		displayText.gameObject.SetActive(true);
 		for (int i = 0; i < agents.Length; i++)
 		{
@@ -145,12 +348,38 @@ public class Game : MonoBehaviour
 			cellObjects[i].Recycle();
 		}
 
-		OnDestroy();
+		DisposeGameData();
 	}
 
 	void OnDestroy ()
 	{
+		player.EndGame();
+		DisposeGameData();
+	}
+
+	void DisposeGameData ()
+	{
 		maze.Dispose();
 		scent.Dispose();
+	}
+
+	bool GetButtonDown (InputFeatureUsage<bool> button, ref bool wasPressed)
+	{
+		bool isPressed = TryGetRightHandButton(button, out bool value) && value;
+		bool isDown = isPressed && !wasPressed;
+		wasPressed = isPressed;
+		return isDown;
+	}
+
+	bool TryGetRightHandButton (InputFeatureUsage<bool> button, out bool value)
+	{
+		if (!rightHandDevice.isValid)
+		{
+			InputDevices.GetDevicesAtXRNode(XRNode.RightHand, inputDevices);
+			rightHandDevice = inputDevices.Count > 0 ?
+				inputDevices[0] : default(InputDevice);
+		}
+		return rightHandDevice.isValid &&
+			rightHandDevice.TryGetFeatureValue(button, out value);
 	}
 }
