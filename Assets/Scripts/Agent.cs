@@ -30,7 +30,7 @@ public class Agent : MonoBehaviour
 
 	Player player;
 
-	AudioSource audioSource;
+	AudioSource runtimeAudioSource;
 
 	bool wasCloseToPlayer;
 
@@ -38,17 +38,32 @@ public class Agent : MonoBehaviour
 
 	void Awake ()
 	{
-		GetComponent<Light>().color = color;
-		GetComponent<MeshRenderer>().material.color = color;
-		ParticleSystem.MainModule main = GetComponent<ParticleSystem>().main;
-		main.startColor = color;
-		audioSource = GetComponent<AudioSource>();
-		if (audioSource == null)
+		runtimeAudioSource = GetComponent<AudioSource>();
+		if (runtimeAudioSource == null)
 		{
-			audioSource = gameObject.AddComponent<AudioSource>();
+			runtimeAudioSource = gameObject.AddComponent<AudioSource>();
 		}
-		audioSource.playOnAwake = false;
-		audioSource.spatialBlend = 0f;
+		runtimeAudioSource.playOnAwake = false;
+		runtimeAudioSource.spatialBlend = 0f;
+
+		Light agentLight = GetComponent<Light>();
+		if (agentLight != null)
+		{
+			agentLight.color = color;
+		}
+
+		MeshRenderer meshRenderer = GetComponent<MeshRenderer>();
+		if (meshRenderer != null)
+		{
+			meshRenderer.material.color = color;
+		}
+
+		ParticleSystem particleSystem = GetComponent<ParticleSystem>();
+		if (particleSystem != null)
+		{
+			ParticleSystem.MainModule main = particleSystem.main;
+			main.startColor = color;
+		}
 		gameObject.SetActive(false);
 	}
 
@@ -122,9 +137,26 @@ public class Agent : MonoBehaviour
 		bool isCloseToPlayer = planarOffset.sqrMagnitude <= proximityDistance * proximityDistance;
 		if (isCloseToPlayer && !wasCloseToPlayer)
 		{
-			audioSource.PlayOneShot(proximitySound);
+			EnsureAudioSource();
+			runtimeAudioSource.PlayOneShot(proximitySound);
 		}
 		wasCloseToPlayer = isCloseToPlayer;
+	}
+
+	void EnsureAudioSource ()
+	{
+		if (runtimeAudioSource != null)
+		{
+			return;
+		}
+
+		runtimeAudioSource = GetComponent<AudioSource>();
+		if (runtimeAudioSource == null)
+		{
+			runtimeAudioSource = gameObject.AddComponent<AudioSource>();
+		}
+		runtimeAudioSource.playOnAwake = false;
+		runtimeAudioSource.spatialBlend = 0f;
 	}
 
 	bool TryFindNewTarget (NativeArray<float> scent)
