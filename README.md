@@ -10,3 +10,10 @@ Videos:
 - Code Demo: https://youtu.be/EXP6P4D-nj0
 
 [Report PDF](./Reports/checkpoint-1.pdf)
+
+## Checkpoint 2
+
+- Videos:
+
+- Game Demo: https://youtu.be/330y0ZEE9t4
+- Code Demo: https://youtu.be/tFvLNF6lZFk
