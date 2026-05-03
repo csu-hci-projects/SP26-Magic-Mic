@@ -744,8 +744,8 @@ MonoBehaviour:
   volumeSmoothing: 8
   deadZone: 0.05
   minimumCalibrationRange: 0.01
-  voiceCollisionRadius: 0.25
-  voiceCollisionSkin: 0.03
+  voiceCollisionRadius: 0.12
+  voiceCollisionSkin: 0.01
   voiceCollisionMask:
     serializedVersion: 2
     m_Bits: 4294967295

@@ -36,10 +36,10 @@ public class Player : MonoBehaviour
 	float minimumCalibrationRange = 0.01f;
 
 	[SerializeField, Min(0f)]
-	float voiceCollisionRadius = 0.25f;
+	float voiceCollisionRadius = 0.12f;
 
 	[SerializeField, Min(0f)]
-	float voiceCollisionSkin = 0.03f;
+	float voiceCollisionSkin = 0.01f;
 
 	[SerializeField]
 	LayerMask voiceCollisionMask = ~0;
@@ -308,6 +308,45 @@ public class Player : MonoBehaviour
 
 		Vector3 direction = movement / distance;
 		Vector3 origin = GetVoiceCollisionOrigin();
+		if (!TryGetNearestVoiceCollision(origin, direction, distance, out RaycastHit hit))
+		{
+			return movement;
+		}
+
+		float allowedDistance = Mathf.Max(0f, hit.distance - voiceCollisionSkin);
+		Vector3 forwardMovement = direction * Mathf.Min(distance, allowedDistance);
+		float remainingDistance = distance - forwardMovement.magnitude;
+		if (remainingDistance <= Mathf.Epsilon)
+		{
+			return forwardMovement;
+		}
+
+		Vector3 slideDirection = Vector3.ProjectOnPlane(direction, hit.normal);
+		slideDirection.y = 0f;
+		if (slideDirection.sqrMagnitude <= Mathf.Epsilon)
+		{
+			return forwardMovement;
+		}
+
+		slideDirection.Normalize();
+		if (TryGetNearestVoiceCollision(
+			origin + forwardMovement,
+			slideDirection,
+			remainingDistance,
+			out RaycastHit slideHit
+		))
+		{
+			remainingDistance = Mathf.Max(0f, slideHit.distance - voiceCollisionSkin);
+		}
+
+		return forwardMovement + slideDirection * remainingDistance;
+	}
+
+	bool TryGetNearestVoiceCollision (
+		Vector3 origin, Vector3 direction, float distance, out RaycastHit nearestHit
+	)
+	{
+		nearestHit = default(RaycastHit);
 		int hitCount = Physics.SphereCastNonAlloc(
 			origin,
 			voiceCollisionRadius,
@@ -318,7 +357,7 @@ public class Player : MonoBehaviour
 			QueryTriggerInteraction.Ignore
 		);
 
-		float allowedDistance = distance;
+		float nearestDistance = float.MaxValue;
 		for (int i = 0; i < hitCount; i++)
 		{
 			Collider hitCollider = voiceCollisionHits[i].collider;
@@ -333,17 +372,13 @@ public class Player : MonoBehaviour
 				continue;
 			}
 
-			if (voiceCollisionHits[i].distance <= voiceCollisionSkin)
+			if (voiceCollisionHits[i].distance < nearestDistance)
 			{
-				return Vector3.zero;
+				nearestDistance = voiceCollisionHits[i].distance;
+				nearestHit = voiceCollisionHits[i];
 			}
-			allowedDistance = Mathf.Min(
-				allowedDistance,
-				Mathf.Max(0f, voiceCollisionHits[i].distance - voiceCollisionSkin)
-			);
 		}
-
-		return direction * allowedDistance;
+		return nearestDistance < float.MaxValue;
 	}
 
 	Vector3 GetVoiceCollisionOrigin ()
