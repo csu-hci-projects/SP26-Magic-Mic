@@ -65,9 +65,9 @@ public class Game : MonoBehaviour
 
 	readonly List<InputDevice> inputDevices = new List<InputDevice>();
 
-	bool wasPrimaryButtonPressed;
+	bool wasAButtonPressed;
 
-	bool wasSecondaryButtonPressed;
+	bool wasBButtonPressed;
 
 	bool isRecordingCalibration;
 
@@ -167,30 +167,30 @@ public class Game : MonoBehaviour
 
 	void Update ()
 	{
-		bool primaryButtonDown =
-			GetButtonDown(CommonUsages.primaryButton, ref wasPrimaryButtonPressed);
-		bool secondaryButtonDown =
-			GetButtonDown(CommonUsages.secondaryButton, ref wasSecondaryButtonPressed);
+		bool aButtonDown =
+			GetButtonDown(CommonUsages.primaryButton, ref wasAButtonPressed);
+		bool bButtonDown =
+			GetButtonDown(CommonUsages.secondaryButton, ref wasBButtonPressed);
 
 		switch (state)
 		{
 			case GameState.SelectModality:
-				UpdateModalitySelection(primaryButtonDown, secondaryButtonDown);
+				UpdateModalitySelection(aButtonDown, bButtonDown);
 				break;
 			case GameState.CalibratingQuiet:
-				UpdateQuietCalibration(primaryButtonDown, secondaryButtonDown);
+				UpdateQuietCalibration(aButtonDown, bButtonDown);
 				break;
 			case GameState.CalibratingLoud:
-				UpdateLoudCalibration(primaryButtonDown, secondaryButtonDown);
+				UpdateLoudCalibration(aButtonDown, bButtonDown);
 				break;
 			case GameState.Playing:
-				UpdatePlaying(secondaryButtonDown);
+				UpdatePlaying(bButtonDown);
 				break;
 			case GameState.Paused:
-				UpdatePause(primaryButtonDown, secondaryButtonDown);
+				UpdatePause(aButtonDown, bButtonDown);
 				break;
 			case GameState.Ended:
-				if (primaryButtonDown)
+				if (aButtonDown)
 				{
 					ShowModalitySelection();
 				}
@@ -198,30 +198,30 @@ public class Game : MonoBehaviour
 		}
 	}
 
-	void UpdateModalitySelection (bool primaryButtonDown, bool secondaryButtonDown)
+	void UpdateModalitySelection (bool aButtonDown, bool bButtonDown)
 	{
-		if (primaryButtonDown)
+		if (aButtonDown)
 		{
 			StartNewGame(MovementModality.Controller);
 			UpdateGame();
 		}
-		else if (secondaryButtonDown)
+		else if (bButtonDown)
 		{
 			player.SetMovementModality(MovementModality.Voice);
 			ShowQuietCalibrationPrompt();
 		}
 	}
 
-	void UpdateQuietCalibration (bool primaryButtonDown, bool secondaryButtonDown)
+	void UpdateQuietCalibration (bool aButtonDown, bool bButtonDown)
 	{
 		if (!isRecordingCalibration)
 		{
 			UpdateCalibrationMeter("Ready");
-			if (secondaryButtonDown)
+			if (bButtonDown)
 			{
 				ShowModalitySelection();
 			}
-			else if (primaryButtonDown)
+			else if (aButtonDown)
 			{
 				StartQuietCalibration();
 			}
@@ -236,16 +236,16 @@ public class Game : MonoBehaviour
 		UpdateCalibrationMeter("Recording quiet");
 	}
 
-	void UpdateLoudCalibration (bool primaryButtonDown, bool secondaryButtonDown)
+	void UpdateLoudCalibration (bool aButtonDown, bool bButtonDown)
 	{
 		if (isWaitingForFallbackStart)
 		{
 			UpdateFallbackPrompt();
-			if (secondaryButtonDown)
+			if (bButtonDown)
 			{
 				ShowQuietCalibrationPrompt();
 			}
-			else if (primaryButtonDown)
+			else if (aButtonDown)
 			{
 				StartNewGame(MovementModality.Voice);
 				UpdateGame();
@@ -256,11 +256,11 @@ public class Game : MonoBehaviour
 		if (!isRecordingCalibration)
 		{
 			UpdateCalibrationMeter("Ready");
-			if (secondaryButtonDown)
+			if (bButtonDown)
 			{
 				ShowQuietCalibrationPrompt();
 			}
-			else if (primaryButtonDown)
+			else if (aButtonDown)
 			{
 				StartLoudCalibration();
 			}
@@ -286,9 +286,9 @@ public class Game : MonoBehaviour
 		UpdateCalibrationMeter("Recording loud");
 	}
 
-	void UpdatePlaying (bool secondaryButtonDown)
+	void UpdatePlaying (bool bButtonDown)
 	{
-		if (secondaryButtonDown)
+		if (bButtonDown)
 		{
 			ShowPauseMenu();
 			return;
@@ -298,16 +298,16 @@ public class Game : MonoBehaviour
 		UpdateVoiceHud();
 	}
 
-	void UpdatePause (bool primaryButtonDown, bool secondaryButtonDown)
+	void UpdatePause (bool aButtonDown, bool bButtonDown)
 	{
-		if (primaryButtonDown)
+		if (aButtonDown)
 		{
 			state = stateBeforePause;
 			player.SetMovementPaused(false);
 			ui.ShowHud(activeModality);
 			UpdateVoiceHud();
 		}
-		else if (secondaryButtonDown)
+		else if (bButtonDown)
 		{
 			LeaveCurrentGame(true);
 			ShowModalitySelection();
