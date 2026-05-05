@@ -19,6 +19,15 @@ public class VoiceMeterView : MonoBehaviour
 	[SerializeField]
 	TMP_Text statusText;
 
+	[SerializeField]
+	bool showMovementLabel = true;
+
+	[SerializeField]
+	bool showValue = true;
+
+	[SerializeField]
+	bool showStatus = true;
+
 	[SerializeField, Min(1f)]
 	float rawVolumeScale = 50f;
 
@@ -30,6 +39,18 @@ public class VoiceMeterView : MonoBehaviour
 
 	[SerializeField]
 	Color loudColor = new Color(1f, 0.78f, 0.28f);
+
+	public void SetDisplayOptions (
+		bool showMovementLabel,
+		bool showValue,
+		bool showStatus
+	)
+	{
+		this.showMovementLabel = showMovementLabel;
+		this.showValue = showValue;
+		this.showStatus = showStatus;
+		UpdateTextVisibility();
+	}
 
 	public void Configure (
 		GameObject rootObject,
@@ -44,6 +65,7 @@ public class VoiceMeterView : MonoBehaviour
 		labelText = label;
 		valueText = value;
 		statusText = status;
+		UpdateTextVisibility();
 	}
 
 	public void SetVisible (bool visible)
@@ -73,8 +95,15 @@ public class VoiceMeterView : MonoBehaviour
 		string movementLabel = GetMovementLabel(normalized);
 		if (labelText != null)
 		{
-			labelText.text = string.IsNullOrEmpty(labelOverride) ?
-				movementLabel : labelOverride + " - " + movementLabel;
+			if (showMovementLabel)
+			{
+				labelText.text = string.IsNullOrEmpty(labelOverride) ?
+					movementLabel : labelOverride + " - " + movementLabel;
+			}
+			else
+			{
+				labelText.text = labelOverride ?? "";
+			}
 		}
 
 		if (valueText != null)
@@ -88,6 +117,22 @@ public class VoiceMeterView : MonoBehaviour
 		if (statusText != null)
 		{
 			statusText.text = microphoneStatus;
+		}
+	}
+
+	void UpdateTextVisibility ()
+	{
+		if (labelText != null)
+		{
+			labelText.gameObject.SetActive(showMovementLabel);
+		}
+		if (valueText != null)
+		{
+			valueText.gameObject.SetActive(showValue);
+		}
+		if (statusText != null)
+		{
+			statusText.gameObject.SetActive(showStatus);
 		}
 	}
 

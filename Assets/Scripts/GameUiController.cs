@@ -144,8 +144,7 @@ public class GameUiController : MonoBehaviour
 		SetPanel(hudPanel, true);
 		if (hudModeText != null)
 		{
-			hudModeText.text = modality == MovementModality.Voice ?
-				"Voice Mode" : "Controller Mode";
+			hudModeText.text = modality == MovementModality.Voice ? "Voice" : "Controller";
 		}
 		if (hudActionText != null)
 		{
@@ -153,6 +152,7 @@ public class GameUiController : MonoBehaviour
 		}
 		if (hudVoiceMeter != null)
 		{
+			hudVoiceMeter.SetDisplayOptions(false, false, false);
 			hudVoiceMeter.SetVisible(modality == MovementModality.Voice);
 		}
 	}
@@ -167,7 +167,7 @@ public class GameUiController : MonoBehaviour
 		if (hudVoiceMeter != null)
 		{
 			hudVoiceMeter.UpdateMeter(
-				volume, quietVolume, loudVolume, microphoneStatus, "Voice drive"
+				volume, quietVolume, loudVolume, microphoneStatus, null
 			);
 		}
 	}
@@ -212,6 +212,7 @@ public class GameUiController : MonoBehaviour
 		}
 		if (calibrationMeter != null)
 		{
+			calibrationMeter.SetDisplayOptions(true, true, true);
 			calibrationMeter.SetVisible(true);
 		}
 	}
@@ -288,9 +289,11 @@ public class GameUiController : MonoBehaviour
 		calibrationActionsText = CreateText(calibrationPanel.transform, "Actions", "", 26, FontStyles.Bold, new Vector2(0f, -215f), new Vector2(850f, 80f));
 
 		hudPanel = CreateHudPanel(canvasRect);
-		hudModeText = CreateText(hudPanel.transform, "Mode", "Controller Mode", 28, FontStyles.Bold, new Vector2(-305f, 235f), new Vector2(320f, 50f), TextAlignmentOptions.Left);
-		hudActionText = CreateText(hudPanel.transform, "Action", "B: Menu", 22, FontStyles.Normal, new Vector2(295f, 235f), new Vector2(320f, 50f), TextAlignmentOptions.Right);
-		hudVoiceMeter = CreateMeter(hudPanel.transform, "HudVoiceMeter", new Vector2(0f, 170f), 600f);
+		hudModeText = CreateText(hudPanel.transform, "Mode", "Controller", 14, FontStyles.Normal, new Vector2(-405f, -270f), new Vector2(180f, 28f), TextAlignmentOptions.Left);
+		hudModeText.color = new Color(1f, 1f, 1f, 0.55f);
+		hudActionText = CreateText(hudPanel.transform, "Action", "B: Menu", 14, FontStyles.Normal, new Vector2(405f, -270f), new Vector2(180f, 28f), TextAlignmentOptions.Right);
+		hudActionText.color = new Color(1f, 1f, 1f, 0.55f);
+		hudVoiceMeter = CreateCompactMeter(hudPanel.transform, "HudVoiceMeter", new Vector2(0f, -270f), 260f);
 
 		pausePanel = CreatePanel(canvasRect, "PausePanel", new Color(0.01f, 0.015f, 0.02f, 0.92f));
 		CreateText(pausePanel.transform, "Title", "Paused", 58, FontStyles.Bold, new Vector2(0f, 105f), new Vector2(850f, 90f));
@@ -416,6 +419,49 @@ public class GameUiController : MonoBehaviour
 
 		var meter = root.AddComponent<VoiceMeterView>();
 		meter.Configure(root, fillImage, label, value, status);
+		return meter;
+	}
+
+	VoiceMeterView CreateCompactMeter (
+		Transform parent,
+		string name,
+		Vector2 position,
+		float width
+	)
+	{
+		var root = new GameObject(name, typeof(RectTransform));
+		root.transform.SetParent(parent, false);
+		var rootRect = root.GetComponent<RectTransform>();
+		rootRect.anchorMin = new Vector2(0.5f, 0.5f);
+		rootRect.anchorMax = new Vector2(0.5f, 0.5f);
+		rootRect.anchoredPosition = position;
+		rootRect.sizeDelta = new Vector2(width, 18f);
+
+		var track = new GameObject("Track", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+		track.transform.SetParent(root.transform, false);
+		var trackRect = track.GetComponent<RectTransform>();
+		trackRect.anchorMin = new Vector2(0.5f, 0.5f);
+		trackRect.anchorMax = new Vector2(0.5f, 0.5f);
+		trackRect.anchoredPosition = Vector2.zero;
+		trackRect.sizeDelta = new Vector2(width, 8f);
+		track.GetComponent<Image>().color = new Color(1f, 1f, 1f, 0.12f);
+
+		var fill = new GameObject("Fill", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+		fill.transform.SetParent(track.transform, false);
+		var fillRect = fill.GetComponent<RectTransform>();
+		fillRect.anchorMin = Vector2.zero;
+		fillRect.anchorMax = Vector2.one;
+		fillRect.offsetMin = Vector2.zero;
+		fillRect.offsetMax = Vector2.zero;
+		var fillImage = fill.GetComponent<Image>();
+		fillImage.type = Image.Type.Filled;
+		fillImage.fillMethod = Image.FillMethod.Horizontal;
+		fillImage.fillAmount = 0f;
+		fillImage.color = new Color(0.35f, 0.85f, 1f, 0.7f);
+
+		var meter = root.AddComponent<VoiceMeterView>();
+		meter.Configure(root, fillImage, null, null, null);
+		meter.SetDisplayOptions(false, false, false);
 		return meter;
 	}
 }
