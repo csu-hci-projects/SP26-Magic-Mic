@@ -77,6 +77,8 @@ public class Player : MonoBehaviour
 
 	bool voiceMovementEnabled;
 
+	bool isMovementPaused;
+
 	float currentVoiceLevel;
 
 	float lastMicrophoneVolume;
@@ -97,6 +99,15 @@ public class Player : MonoBehaviour
 
 	public string MicrophoneStatus => microphoneStatus;
 
+	public Transform ViewTransform
+	{
+		get
+		{
+			CacheReferences();
+			return head != null ? head : transform;
+		}
+	}
+
 	void Awake ()
 	{
 		CacheReferences();
@@ -105,7 +116,11 @@ public class Player : MonoBehaviour
 
 	void Update ()
 	{
-		if (movementModality == MovementModality.Voice && voiceMovementEnabled)
+		if (
+			movementModality == MovementModality.Voice &&
+			voiceMovementEnabled &&
+			!isMovementPaused
+		)
 		{
 			ApplyVoiceMovement();
 		}
@@ -143,12 +158,26 @@ public class Player : MonoBehaviour
 
 		if (controllerMoveProvider != null)
 		{
-			controllerMoveProvider.enabled = modality == MovementModality.Controller;
+			controllerMoveProvider.enabled =
+				modality == MovementModality.Controller && !isMovementPaused;
 		}
 
 		if (modality == MovementModality.Controller)
 		{
 			StopMicrophone();
+		}
+	}
+
+	public void SetMovementPaused (bool paused)
+	{
+		CacheReferences();
+		isMovementPaused = paused;
+		currentVoiceLevel = 0f;
+
+		if (controllerMoveProvider != null)
+		{
+			controllerMoveProvider.enabled =
+				movementModality == MovementModality.Controller && !isMovementPaused;
 		}
 	}
 
@@ -207,6 +236,7 @@ public class Player : MonoBehaviour
 
 	public void EndGame ()
 	{
+		isMovementPaused = false;
 		voiceMovementEnabled = false;
 		currentVoiceLevel = 0f;
 		StopMicrophone();
@@ -215,6 +245,7 @@ public class Player : MonoBehaviour
 	public void StartNewGame (Vector3 position)
 	{
 		CacheReferences();
+		SetMovementPaused(false);
 
 		float yaw = Random.Range(0f, 360f);
 		transform.rotation = Quaternion.Euler(0f, yaw, 0f);

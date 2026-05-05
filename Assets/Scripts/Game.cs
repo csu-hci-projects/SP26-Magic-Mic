@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Text;
 using TMPro;
 using Unity.Collections;
 using Unity.Jobs;
@@ -19,6 +18,7 @@ public class Game : MonoBehaviour
 		CalibratingQuiet,
 		CalibratingLoud,
 		Playing,
+		Paused,
 		Ended
 	}
 
@@ -44,6 +44,9 @@ public class Game : MonoBehaviour
 	Agent[] agents;
 
 	[SerializeField]
+	GameUiController ui;
+
+	[SerializeField, Tooltip("Old prompt text kept as a fallback until the new UI is wired.")]
 	TextMeshPro displayText;
 
 	Maze maze;
@@ -51,6 +54,10 @@ public class Game : MonoBehaviour
 	Scent scent;
 
 	GameState state;
+
+	GameState stateBeforePause;
+
+	MovementModality activeModality = MovementModality.Controller;
 
 	MazeCellObject[] cellObjects;
 
@@ -66,21 +73,46 @@ public class Game : MonoBehaviour
 
 	bool isWaitingForFallbackStart;
 
-	readonly StringBuilder volumeMeterBuilder = new StringBuilder(32);
-
+	bool hasActiveGameData;
 
 	void Start ()
 	{
+		if (displayText != null)
+		{
+			displayText.gameObject.SetActive(false);
+		}
+
+		EnsureUi();
 		ShowModalitySelection();
+	}
+
+	void EnsureUi ()
+	{
+		if (ui == null)
+		{
+			ui = FindFirstObjectByType<GameUiController>(FindObjectsInactive.Include);
+		}
+
+		if (ui == null)
+		{
+			ui = gameObject.AddComponent<GameUiController>();
+		}
+
+		ui.Initialize(player != null ? player.ViewTransform : null);
 	}
 
 	void StartNewGame (MovementModality modality)
 	{
+		LeaveCurrentGame(false);
 		state = GameState.Playing;
+		activeModality = modality;
+		isRecordingCalibration = false;
+		isWaitingForFallbackStart = false;
 		player.SetMovementModality(modality);
-		displayText.gameObject.SetActive(false);
+
 		maze = new Maze(mazeSize);
 		scent = new Scent(maze);
+		hasActiveGameData = true;
 		new FindDiagonalPassagesJob
 		{
 			maze = maze
@@ -128,6 +160,9 @@ public class Game : MonoBehaviour
 			}
 			agents[i].StartNewGame(maze, coordinates);
 		}
+
+		ui.ShowHud(modality);
+		UpdateVoiceHud();
 	}
 
 	void Update ()
@@ -149,7 +184,10 @@ public class Game : MonoBehaviour
 				UpdateLoudCalibration(primaryButtonDown, secondaryButtonDown);
 				break;
 			case GameState.Playing:
-				UpdateGame();
+				UpdatePlaying(secondaryButtonDown);
+				break;
+			case GameState.Paused:
+				UpdatePause(primaryButtonDown, secondaryButtonDown);
 				break;
 			case GameState.Ended:
 				if (primaryButtonDown)
@@ -178,6 +216,7 @@ public class Game : MonoBehaviour
 	{
 		if (!isRecordingCalibration)
 		{
+			UpdateCalibrationMeter("Ready");
 			if (secondaryButtonDown)
 			{
 				ShowModalitySelection();
@@ -194,13 +233,14 @@ public class Game : MonoBehaviour
 			ShowLoudCalibrationPrompt();
 			return;
 		}
-		UpdateRecordingPrompt("RECORDING QUIET");
+		UpdateCalibrationMeter("Recording quiet");
 	}
 
 	void UpdateLoudCalibration (bool primaryButtonDown, bool secondaryButtonDown)
 	{
 		if (isWaitingForFallbackStart)
 		{
+			UpdateFallbackPrompt();
 			if (secondaryButtonDown)
 			{
 				ShowQuietCalibrationPrompt();
@@ -215,6 +255,7 @@ public class Game : MonoBehaviour
 
 		if (!isRecordingCalibration)
 		{
+			UpdateCalibrationMeter("Ready");
 			if (secondaryButtonDown)
 			{
 				ShowQuietCalibrationPrompt();
@@ -239,24 +280,49 @@ public class Game : MonoBehaviour
 				isRecordingCalibration = false;
 				isWaitingForFallbackStart = true;
 				UpdateFallbackPrompt();
-				displayText.gameObject.SetActive(true);
 			}
 			return;
 		}
-		UpdateRecordingPrompt("RECORDING LOUD");
+		UpdateCalibrationMeter("Recording loud");
+	}
+
+	void UpdatePlaying (bool secondaryButtonDown)
+	{
+		if (secondaryButtonDown)
+		{
+			ShowPauseMenu();
+			return;
+		}
+
+		UpdateGame();
+		UpdateVoiceHud();
+	}
+
+	void UpdatePause (bool primaryButtonDown, bool secondaryButtonDown)
+	{
+		if (primaryButtonDown)
+		{
+			state = stateBeforePause;
+			player.SetMovementPaused(false);
+			ui.ShowHud(activeModality);
+			UpdateVoiceHud();
+		}
+		else if (secondaryButtonDown)
+		{
+			LeaveCurrentGame(true);
+			ShowModalitySelection();
+		}
 	}
 
 	void ShowModalitySelection ()
 	{
+		LeaveCurrentGame(false);
 		state = GameState.SelectModality;
+		activeModality = MovementModality.Controller;
 		isRecordingCalibration = false;
 		isWaitingForFallbackStart = false;
 		player.SetMovementModality(MovementModality.Controller);
-		displayText.text =
-			"SELECT MOVEMENT\n" +
-			"PRIMARY: CONTROLLER\n" +
-			"SECONDARY: VOICE";
-		displayText.gameObject.SetActive(true);
+		ui.ShowMainMenu();
 	}
 
 	void ShowQuietCalibrationPrompt ()
@@ -264,13 +330,8 @@ public class Game : MonoBehaviour
 		state = GameState.CalibratingQuiet;
 		isRecordingCalibration = false;
 		isWaitingForFallbackStart = false;
-		displayText.text =
-			"VOICE CALIBRATION\n" +
-			"STAY QUIET\n" +
-			BuildVolumeMeter() + "\n" +
-			"PRIMARY: RECORD QUIET\n" +
-			"SECONDARY: BACK";
-		displayText.gameObject.SetActive(true);
+		ui.ShowCalibrationQuiet();
+		UpdateCalibrationMeter("Ready");
 	}
 
 	void ShowLoudCalibrationPrompt ()
@@ -278,85 +339,93 @@ public class Game : MonoBehaviour
 		state = GameState.CalibratingLoud;
 		isRecordingCalibration = false;
 		isWaitingForFallbackStart = false;
-		displayText.text =
-			"VOICE CALIBRATION\n" +
-			"SPEAK LOUDLY\n" +
-			BuildVolumeMeter() + "\n" +
-			"PRIMARY: RECORD LOUD\n" +
-			"SECONDARY: RECALIBRATE";
-		displayText.gameObject.SetActive(true);
+		ui.ShowCalibrationLoud(player.QuietVolume);
+		UpdateCalibrationMeter("Ready");
 	}
 
 	void StartQuietCalibration ()
 	{
 		if (!player.BeginVoiceCalibration(VoiceCalibrationStep.Quiet))
 		{
-			displayText.text =
-				"NO MICROPHONE FOUND\n" +
-				"CHECK PERMISSION AND DEVICE\n" +
-				"PRIMARY: CONTROLLER\n" +
-				"SECONDARY: TRY VOICE AGAIN";
-			state = GameState.SelectModality;
+			ShowMicrophoneError();
 			return;
 		}
 		isRecordingCalibration = true;
-		UpdateRecordingPrompt("RECORDING QUIET");
+		ui.ShowCalibrationRecording("Recording quiet", "Stay as quiet as you can.");
+		UpdateCalibrationMeter("Recording quiet");
 	}
 
 	void StartLoudCalibration ()
 	{
 		if (!player.BeginVoiceCalibration(VoiceCalibrationStep.Loud))
 		{
-			displayText.text =
-				"NO MICROPHONE FOUND\n" +
-				"CHECK PERMISSION AND DEVICE\n" +
-				"PRIMARY: CONTROLLER\n" +
-				"SECONDARY: TRY VOICE AGAIN";
-			state = GameState.SelectModality;
+			ShowMicrophoneError();
 			return;
 		}
 		isRecordingCalibration = true;
-		UpdateRecordingPrompt("RECORDING LOUD");
+		ui.ShowCalibrationRecording("Recording loud", "Speak clearly and loudly.");
+		UpdateCalibrationMeter("Recording loud");
 	}
 
-	void UpdateRecordingPrompt (string label)
+	void ShowMicrophoneError ()
 	{
-		displayText.text =
-			label + "\n" +
-			BuildVolumeMeter();
+		state = GameState.SelectModality;
+		isRecordingCalibration = false;
+		isWaitingForFallbackStart = false;
+		ui.ShowMicrophoneError(player.MicrophoneStatus);
+	}
+
+	void UpdateCalibrationMeter (string label)
+	{
+		ui.UpdateCalibrationMeter(
+			player.PreviewMicrophoneVolume(),
+			player.QuietVolume,
+			player.LoudVolume,
+			player.MicrophoneStatus,
+			label
+		);
 	}
 
 	void UpdateFallbackPrompt ()
 	{
-		displayText.text =
-			"LOUD VOICE WAS TOO CLOSE TO QUIET\n" +
-			BuildVolumeMeter() + "\n" +
-			"QUIET: " + player.QuietVolume.ToString("0.000") + "\n" +
-			"LOUD: " + player.LoudVolume.ToString("0.000") + "\n" +
-			"PRIMARY: START WITH FALLBACK\n" +
-			"SECONDARY: RECALIBRATE";
+		ui.ShowCalibrationFallback(
+			player.PreviewMicrophoneVolume(),
+			player.QuietVolume,
+			player.LoudVolume,
+			player.MicrophoneStatus
+		);
 	}
 
-	string BuildVolumeMeter ()
+	void UpdateVoiceHud ()
 	{
-		float volume = player.PreviewMicrophoneVolume();
-		float normalizedVolume = Mathf.Clamp01(volume * 50f);
-		int filledSegments = Mathf.RoundToInt(normalizedVolume * 10f);
-		volumeMeterBuilder.Clear();
-		volumeMeterBuilder.Append("VOLUME [");
-		for (int i = 0; i < 10; i++)
+		if (activeModality != MovementModality.Voice)
 		{
-			volumeMeterBuilder.Append(i < filledSegments ? "#" : "-");
+			return;
 		}
-		volumeMeterBuilder.Append("] ");
-		volumeMeterBuilder.Append(volume.ToString("0.000"));
-		volumeMeterBuilder.Append("\n");
-		volumeMeterBuilder.Append(player.MicrophoneStatus);
-		return volumeMeterBuilder.ToString();
+
+		ui.UpdateHudVoiceMeter(
+			player.PreviewMicrophoneVolume(),
+			player.QuietVolume,
+			player.LoudVolume,
+			player.MicrophoneStatus
+		);
+	}
+
+	void ShowPauseMenu ()
+	{
+		stateBeforePause = state;
+		state = GameState.Paused;
+		player.SetMovementPaused(true);
+		ui.ShowPause(activeModality);
 	}
 
 	void UpdateGame ()
 	{
+		if (!hasActiveGameData)
+		{
+			return;
+		}
+
 		Vector3 playerPosition = player.Move();
 		NativeArray<float> currentScent = scent.Disperse(maze, playerPosition);
 		for (int i = 0; i < agents.Length; i++)
@@ -379,16 +448,36 @@ public class Game : MonoBehaviour
 	{
 		state = GameState.Ended;
 		player.EndGame();
-		displayText.text = message + "\nPRIMARY: MENU";
-		displayText.gameObject.SetActive(true);
+		CleanupCurrentGame();
+		ui.ShowEnd(message);
+	}
+
+	void LeaveCurrentGame (bool stopPlayer)
+	{
+		if (stopPlayer)
+		{
+			player.EndGame();
+		}
+		CleanupCurrentGame();
+	}
+
+	void CleanupCurrentGame ()
+	{
 		for (int i = 0; i < agents.Length; i++)
 		{
 			agents[i].EndGame();
 		}
 
-		for (int i = 0; i < cellObjects.Length; i++)
+		if (cellObjects != null)
 		{
-			cellObjects[i].Recycle();
+			for (int i = 0; i < cellObjects.Length; i++)
+			{
+				if (cellObjects[i] != null)
+				{
+					cellObjects[i].Recycle();
+					cellObjects[i] = null;
+				}
+			}
 		}
 
 		DisposeGameData();
@@ -402,8 +491,14 @@ public class Game : MonoBehaviour
 
 	void DisposeGameData ()
 	{
+		if (!hasActiveGameData)
+		{
+			return;
+		}
+
 		maze.Dispose();
 		scent.Dispose();
+		hasActiveGameData = false;
 	}
 
 	bool GetButtonDown (InputFeatureUsage<bool> button, ref bool wasPressed)
