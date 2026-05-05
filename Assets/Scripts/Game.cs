@@ -49,9 +49,6 @@ public class Game : MonoBehaviour
 	[SerializeField, Tooltip("Old prompt text kept as a fallback until the new UI is wired.")]
 	TextMeshPro displayText;
 
-	[SerializeField]
-	ControllerButtonHints controllerButtonHints;
-
 	Maze maze;
 
 	Scent scent;
@@ -102,23 +99,6 @@ public class Game : MonoBehaviour
 		}
 
 		ui.Initialize(player != null ? player.ViewTransform : null);
-		EnsureControllerButtonHints();
-	}
-
-	void EnsureControllerButtonHints ()
-	{
-		if (controllerButtonHints == null)
-		{
-			controllerButtonHints =
-				FindFirstObjectByType<ControllerButtonHints>(FindObjectsInactive.Include);
-		}
-
-		if (controllerButtonHints == null)
-		{
-			controllerButtonHints = gameObject.AddComponent<ControllerButtonHints>();
-		}
-
-		controllerButtonHints.Initialize(player != null ? player.ViewTransform : null);
 	}
 
 	void StartNewGame (MovementModality modality)
