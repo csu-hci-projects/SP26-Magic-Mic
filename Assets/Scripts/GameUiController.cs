@@ -32,12 +32,6 @@ public class GameUiController : MonoBehaviour
 	TMP_Text calibrationActionsText;
 
 	[SerializeField]
-	TMP_Text hudModeText;
-
-	[SerializeField]
-	TMP_Text hudActionText;
-
-	[SerializeField]
 	TMP_Text pauseModeText;
 
 	[SerializeField]
@@ -142,14 +136,6 @@ public class GameUiController : MonoBehaviour
 	{
 		HideAll();
 		SetPanel(hudPanel, true);
-		if (hudModeText != null)
-		{
-			hudModeText.text = modality == MovementModality.Voice ? "Voice" : "Controller";
-		}
-		if (hudActionText != null)
-		{
-			hudActionText.text = "B: Menu";
-		}
 		if (hudVoiceMeter != null)
 		{
 			hudVoiceMeter.SetDisplayOptions(false, false, false);
@@ -291,11 +277,7 @@ public class GameUiController : MonoBehaviour
 		calibrationActionsText = CreateText(calibrationPanel.transform, "Actions", "", 22, FontStyles.Bold, new Vector2(0f, -222f), new Vector2(850f, 58f));
 
 		hudPanel = CreateHudPanel(canvasRect);
-		hudModeText = CreateText(hudPanel.transform, "Mode", "Controller", 14, FontStyles.Normal, new Vector2(-405f, -270f), new Vector2(180f, 28f), TextAlignmentOptions.Left);
-		hudModeText.color = new Color(1f, 1f, 1f, 0.55f);
-		hudActionText = CreateText(hudPanel.transform, "Action", "B: Menu", 14, FontStyles.Normal, new Vector2(405f, -270f), new Vector2(180f, 28f), TextAlignmentOptions.Right);
-		hudActionText.color = new Color(1f, 1f, 1f, 0.55f);
-		hudVoiceMeter = CreateCompactMeter(hudPanel.transform, "HudVoiceMeter", new Vector2(0f, -270f), 260f);
+		hudVoiceMeter = CreateCompactMeter(hudPanel.transform, "HudVoiceMeter", new Vector2(0f, -265f), 340f);
 
 		pausePanel = CreatePanel(canvasRect, "PausePanel", new Color(0.01f, 0.015f, 0.02f, 0.92f));
 		CreateText(pausePanel.transform, "Title", "Paused", 58, FontStyles.Bold, new Vector2(0f, 105f), new Vector2(850f, 90f));
@@ -486,7 +468,18 @@ public class GameUiController : MonoBehaviour
 		rootRect.anchorMin = new Vector2(0.5f, 0.5f);
 		rootRect.anchorMax = new Vector2(0.5f, 0.5f);
 		rootRect.anchoredPosition = position;
-		rootRect.sizeDelta = new Vector2(width, 18f);
+		rootRect.sizeDelta = new Vector2(width + 54f, 34f);
+
+		var icon = CreateText(
+			root.transform,
+			"MicIcon",
+			"MIC",
+			18,
+			FontStyles.Bold,
+			new Vector2((-width * 0.5f) - 24f, 0f),
+			new Vector2(48f, 28f)
+		);
+		icon.color = new Color(1f, 1f, 1f, 0.68f);
 
 		var track = new GameObject("Track", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
 		track.transform.SetParent(root.transform, false);
@@ -494,8 +487,8 @@ public class GameUiController : MonoBehaviour
 		trackRect.anchorMin = new Vector2(0.5f, 0.5f);
 		trackRect.anchorMax = new Vector2(0.5f, 0.5f);
 		trackRect.anchoredPosition = Vector2.zero;
-		trackRect.sizeDelta = new Vector2(width, 8f);
-		track.GetComponent<Image>().color = new Color(1f, 1f, 1f, 0.12f);
+		trackRect.sizeDelta = new Vector2(width, 14f);
+		track.GetComponent<Image>().color = new Color(1f, 1f, 1f, 0.16f);
 
 		var fill = new GameObject("Fill", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
 		fill.transform.SetParent(track.transform, false);
@@ -508,7 +501,7 @@ public class GameUiController : MonoBehaviour
 		fillImage.type = Image.Type.Filled;
 		fillImage.fillMethod = Image.FillMethod.Horizontal;
 		fillImage.fillAmount = 0f;
-		fillImage.color = new Color(0.35f, 0.85f, 1f, 0.7f);
+		fillImage.color = new Color(0.35f, 0.85f, 1f, 0.85f);
 
 		var meter = root.AddComponent<VoiceMeterView>();
 		meter.Configure(root, fillImage, null, null, null);
