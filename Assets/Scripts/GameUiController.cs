@@ -71,19 +71,19 @@ public class GameUiController : MonoBehaviour
 	public void ShowCalibrationQuiet ()
 	{
 		ShowCalibration(
-			"Voice calibration",
-			"Step 1 of 2\nStay quiet for 2 seconds so the maze learns your resting volume.",
-			"A: Record quiet\nB: Back"
+			"Voice setup",
+			"Step 1 of 2\nStay quiet and still. The meter should barely move.",
+			"A  Record quiet     B  Back"
 		);
 	}
 
 	public void ShowCalibrationLoud (float quietVolume)
 	{
 		ShowCalibration(
-			"Voice calibration",
-			"Step 2 of 2\nSpeak loudly for 2 seconds. Louder voice means faster movement.\nQuiet baseline: " +
+			"Voice setup",
+			"Step 2 of 2\nSpeak at the volume you want to use for fast movement.\nQuiet baseline: " +
 				quietVolume.ToString("0.000"),
-			"A: Record loud\nB: Recalibrate"
+			"A  Record loud     B  Redo quiet"
 		);
 	}
 
@@ -104,9 +104,9 @@ public class GameUiController : MonoBehaviour
 	)
 	{
 		ShowCalibration(
-			"Voice range too small",
-			"Quiet and loud were too close together.\nYou can start anyway with a fallback range, or recalibrate for better control.",
-			"A: Start anyway\nB: Recalibrate"
+			"Calibration check",
+			"Quiet and loud were very close together. You can still start, but recalibrating may feel better.",
+			"A  Start anyway     B  Recalibrate"
 		);
 		UpdateCalibrationMeter(volume, quietVolume, loudVolume, microphoneStatus, "Fallback range");
 	}
@@ -115,8 +115,8 @@ public class GameUiController : MonoBehaviour
 	{
 		ShowCalibration(
 			"Microphone unavailable",
-			"Check headset permission and microphone input, then try voice mode again.",
-			"A: Controller\nB: Try voice again"
+			"Check headset permission and microphone input, then try again.",
+			"A  Controller     B  Try voice"
 		);
 		UpdateCalibrationMeter(0f, 0f, 0.1f, microphoneStatus, "Mic not ready");
 	}
@@ -259,34 +259,36 @@ public class GameUiController : MonoBehaviour
 		var scaler = canvasObject.GetComponent<CanvasScaler>();
 		scaler.dynamicPixelsPerUnit = 8f;
 
-		mainMenuPanel = CreatePanel(canvasRect, "MainMenuPanel", new Color(0.02f, 0.03f, 0.04f, 0.84f));
-		CreateText(mainMenuPanel.transform, "Title", "MAGIC MIC", 64, FontStyles.Bold, new Vector2(0f, 190f), new Vector2(850f, 90f));
+		mainMenuPanel = CreatePanel(canvasRect, "MainMenuPanel", new Color(0.015f, 0.018f, 0.024f, 0.82f));
+		CreateAccentLine(mainMenuPanel.transform, new Vector2(0f, 228f), new Vector2(180f, 6f));
+		CreateText(mainMenuPanel.transform, "Title", "MAGIC MIC", 58, FontStyles.Bold, new Vector2(0f, 168f), new Vector2(850f, 82f));
 		CreateText(
 			mainMenuPanel.transform,
 			"Subtitle",
-			"Choose how you want to navigate the maze.",
-			28,
+			"Choose a movement mode for this run.",
+			24,
 			FontStyles.Normal,
-			new Vector2(0f, 125f),
+			new Vector2(0f, 106f),
 			new Vector2(850f, 60f)
 		);
-		CreateOption(mainMenuPanel.transform, "A: Controller", new Vector2(0f, 20f));
-		CreateOption(mainMenuPanel.transform, "B: Voice", new Vector2(0f, -85f));
+		CreateOption(mainMenuPanel.transform, "A: Controller", new Vector2(0f, 2f));
+		CreateOption(mainMenuPanel.transform, "B: Voice", new Vector2(0f, -92f));
 		CreateText(
 			mainMenuPanel.transform,
 			"Footer",
-			"Voice mode uses microphone volume to move forward.",
-			22,
+			"Voice mode maps speaking volume to forward movement.",
+			18,
 			FontStyles.Normal,
 			new Vector2(0f, -215f),
 			new Vector2(850f, 50f)
 		);
 
-		calibrationPanel = CreatePanel(canvasRect, "CalibrationPanel", new Color(0.02f, 0.03f, 0.04f, 0.86f));
-		calibrationTitleText = CreateText(calibrationPanel.transform, "Title", "", 44, FontStyles.Bold, new Vector2(0f, 205f), new Vector2(850f, 70f));
-		calibrationBodyText = CreateText(calibrationPanel.transform, "Body", "", 28, FontStyles.Normal, new Vector2(0f, 105f), new Vector2(820f, 130f));
-		calibrationMeter = CreateMeter(calibrationPanel.transform, "CalibrationMeter", new Vector2(0f, -45f), 760f);
-		calibrationActionsText = CreateText(calibrationPanel.transform, "Actions", "", 26, FontStyles.Bold, new Vector2(0f, -215f), new Vector2(850f, 80f));
+		calibrationPanel = CreatePanel(canvasRect, "CalibrationPanel", new Color(0.015f, 0.018f, 0.024f, 0.86f));
+		CreateAccentLine(calibrationPanel.transform, new Vector2(0f, 228f), new Vector2(150f, 6f));
+		calibrationTitleText = CreateText(calibrationPanel.transform, "Title", "", 42, FontStyles.Bold, new Vector2(0f, 174f), new Vector2(850f, 64f));
+		calibrationBodyText = CreateText(calibrationPanel.transform, "Body", "", 24, FontStyles.Normal, new Vector2(0f, 86f), new Vector2(800f, 110f));
+		calibrationMeter = CreateMeter(calibrationPanel.transform, "CalibrationMeter", new Vector2(0f, -60f), 680f);
+		calibrationActionsText = CreateText(calibrationPanel.transform, "Actions", "", 22, FontStyles.Bold, new Vector2(0f, -222f), new Vector2(850f, 58f));
 
 		hudPanel = CreateHudPanel(canvasRect);
 		hudModeText = CreateText(hudPanel.transform, "Mode", "Controller", 14, FontStyles.Normal, new Vector2(-405f, -270f), new Vector2(180f, 28f), TextAlignmentOptions.Left);
@@ -337,6 +339,18 @@ public class GameUiController : MonoBehaviour
 		return panel;
 	}
 
+	void CreateAccentLine (Transform parent, Vector2 position, Vector2 size)
+	{
+		var line = new GameObject("AccentLine", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+		line.transform.SetParent(parent, false);
+		var rect = line.GetComponent<RectTransform>();
+		rect.anchorMin = new Vector2(0.5f, 0.5f);
+		rect.anchorMax = new Vector2(0.5f, 0.5f);
+		rect.anchoredPosition = position;
+		rect.sizeDelta = size;
+		line.GetComponent<Image>().color = new Color(0.35f, 0.85f, 1f, 0.9f);
+	}
+
 	TMP_Text CreateText (
 		Transform parent,
 		string name,
@@ -375,9 +389,46 @@ public class GameUiController : MonoBehaviour
 		rect.anchorMin = new Vector2(0.5f, 0.5f);
 		rect.anchorMax = new Vector2(0.5f, 0.5f);
 		rect.anchoredPosition = position;
-		rect.sizeDelta = new Vector2(720f, 76f);
-		option.GetComponent<Image>().color = new Color(1f, 1f, 1f, 0.1f);
-		CreateText(option.transform, "Text", text, 30, FontStyles.Bold, Vector2.zero, new Vector2(650f, 60f));
+		rect.sizeDelta = new Vector2(680f, 70f);
+		option.GetComponent<Image>().color = new Color(1f, 1f, 1f, 0.085f);
+
+		string key = "";
+		string label = text;
+		int separatorIndex = text.IndexOf(":");
+		if (separatorIndex >= 0)
+		{
+			key = text.Substring(0, separatorIndex).Trim();
+			label = text.Substring(separatorIndex + 1).Trim();
+		}
+
+		var keyObject = new GameObject("Key", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+		keyObject.transform.SetParent(option.transform, false);
+		var keyRect = keyObject.GetComponent<RectTransform>();
+		keyRect.anchorMin = new Vector2(0.5f, 0.5f);
+		keyRect.anchorMax = new Vector2(0.5f, 0.5f);
+		keyRect.anchoredPosition = new Vector2(-285f, 0f);
+		keyRect.sizeDelta = new Vector2(54f, 44f);
+		keyObject.GetComponent<Image>().color = new Color(0.35f, 0.85f, 1f, 0.22f);
+		CreateText(
+			keyObject.transform,
+			"Text",
+			key,
+			26,
+			FontStyles.Bold,
+			Vector2.zero,
+			new Vector2(50f, 38f)
+		);
+
+		CreateText(
+			option.transform,
+			"Text",
+			label,
+			28,
+			FontStyles.Bold,
+			new Vector2(55f, 0f),
+			new Vector2(520f, 52f),
+			TextAlignmentOptions.Left
+		);
 	}
 
 	VoiceMeterView CreateMeter (Transform parent, string name, Vector2 position, float width)
