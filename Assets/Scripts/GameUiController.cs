@@ -73,7 +73,7 @@ public class GameUiController : MonoBehaviour
 		ShowCalibration(
 			"Voice calibration",
 			"Step 1 of 2\nStay quiet for 2 seconds so the maze learns your resting volume.",
-			"Primary: Record quiet\nSecondary: Back"
+			"A: Record quiet\nB: Back"
 		);
 	}
 
@@ -83,7 +83,7 @@ public class GameUiController : MonoBehaviour
 			"Voice calibration",
 			"Step 2 of 2\nSpeak loudly for 2 seconds. Louder voice means faster movement.\nQuiet baseline: " +
 				quietVolume.ToString("0.000"),
-			"Primary: Record loud\nSecondary: Recalibrate"
+			"A: Record loud\nB: Recalibrate"
 		);
 	}
 
@@ -106,7 +106,7 @@ public class GameUiController : MonoBehaviour
 		ShowCalibration(
 			"Voice range too small",
 			"Quiet and loud were too close together.\nYou can start anyway with a fallback range, or recalibrate for better control.",
-			"Primary: Start anyway\nSecondary: Recalibrate"
+			"A: Start anyway\nB: Recalibrate"
 		);
 		UpdateCalibrationMeter(volume, quietVolume, loudVolume, microphoneStatus, "Fallback range");
 	}
@@ -116,7 +116,7 @@ public class GameUiController : MonoBehaviour
 		ShowCalibration(
 			"Microphone unavailable",
 			"Check headset permission and microphone input, then try voice mode again.",
-			"Primary: Controller\nSecondary: Try voice again"
+			"A: Controller\nB: Try voice again"
 		);
 		UpdateCalibrationMeter(0f, 0f, 0.1f, microphoneStatus, "Mic not ready");
 	}
@@ -149,7 +149,7 @@ public class GameUiController : MonoBehaviour
 		}
 		if (hudActionText != null)
 		{
-			hudActionText.text = "Secondary: Menu";
+			hudActionText.text = "B: Menu";
 		}
 		if (hudVoiceMeter != null)
 		{
@@ -269,8 +269,8 @@ public class GameUiController : MonoBehaviour
 			new Vector2(0f, 125f),
 			new Vector2(850f, 60f)
 		);
-		CreateOption(mainMenuPanel.transform, "Primary: Controller", new Vector2(0f, 20f));
-		CreateOption(mainMenuPanel.transform, "Secondary: Voice", new Vector2(0f, -85f));
+		CreateOption(mainMenuPanel.transform, "A: Controller", new Vector2(0f, 20f));
+		CreateOption(mainMenuPanel.transform, "B: Voice", new Vector2(0f, -85f));
 		CreateText(
 			mainMenuPanel.transform,
 			"Footer",
@@ -289,19 +289,19 @@ public class GameUiController : MonoBehaviour
 
 		hudPanel = CreateHudPanel(canvasRect);
 		hudModeText = CreateText(hudPanel.transform, "Mode", "Controller Mode", 28, FontStyles.Bold, new Vector2(-305f, 235f), new Vector2(320f, 50f), TextAlignmentOptions.Left);
-		hudActionText = CreateText(hudPanel.transform, "Action", "Secondary: Menu", 22, FontStyles.Normal, new Vector2(295f, 235f), new Vector2(320f, 50f), TextAlignmentOptions.Right);
+		hudActionText = CreateText(hudPanel.transform, "Action", "B: Menu", 22, FontStyles.Normal, new Vector2(295f, 235f), new Vector2(320f, 50f), TextAlignmentOptions.Right);
 		hudVoiceMeter = CreateMeter(hudPanel.transform, "HudVoiceMeter", new Vector2(0f, 170f), 600f);
 
 		pausePanel = CreatePanel(canvasRect, "PausePanel", new Color(0.01f, 0.015f, 0.02f, 0.92f));
 		CreateText(pausePanel.transform, "Title", "Paused", 58, FontStyles.Bold, new Vector2(0f, 105f), new Vector2(850f, 90f));
 		pauseModeText = CreateText(pausePanel.transform, "Mode", "", 28, FontStyles.Normal, new Vector2(0f, 25f), new Vector2(850f, 60f));
-		CreateOption(pausePanel.transform, "Primary: Resume", new Vector2(0f, -65f));
-		CreateOption(pausePanel.transform, "Secondary: Leave Maze", new Vector2(0f, -170f));
+		CreateOption(pausePanel.transform, "A: Resume", new Vector2(0f, -65f));
+		CreateOption(pausePanel.transform, "B: Leave Maze", new Vector2(0f, -170f));
 
 		endPanel = CreatePanel(canvasRect, "EndPanel", new Color(0.02f, 0.015f, 0.015f, 0.9f));
 		CreateText(endPanel.transform, "Title", "Run complete", 38, FontStyles.Bold, new Vector2(0f, 150f), new Vector2(850f, 70f));
 		endMessageText = CreateText(endPanel.transform, "Message", "", 56, FontStyles.Bold, new Vector2(0f, 45f), new Vector2(850f, 115f));
-		CreateOption(endPanel.transform, "Primary: Main Menu", new Vector2(0f, -135f));
+		CreateOption(endPanel.transform, "A: Main Menu", new Vector2(0f, -135f));
 	}
 
 	GameObject CreatePanel (
