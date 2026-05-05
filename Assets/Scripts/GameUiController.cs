@@ -359,7 +359,7 @@ public class GameUiController : MonoBehaviour
 		tmp.fontStyle = style;
 		tmp.alignment = alignment;
 		tmp.color = Color.white;
-		tmp.enableWordWrapping = true;
+		tmp.textWrappingMode = TextWrappingModes.Normal;
 		tmp.raycastTarget = false;
 		return tmp;
 	}
